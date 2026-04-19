@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Tournament Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=JetBrains+Mono:wght@300;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #d4af37;
+    --gold-bright: #f4d77e;
+    --felt: #0a3d24;
+    --felt-dark: #041810;
+    --red: #c8102e;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background:
+      radial-gradient(ellipse at 20% 0%, #1a6b3f 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, #0c4a2a 0%, transparent 50%),
+      linear-gradient(180deg, #062819 0%, #020d08 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(255,255,255,0.02) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255,255,255,0.015) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background:
+      linear-gradient(145deg, rgba(20,50,35,0.95) 0%, rgba(8,25,16,0.98) 100%);
+    border-radius: 24px;
+    padding: 40px 36px 32px;
+    position: relative;
+    box-shadow:
+      0 30px 80px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(212,175,55,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 18px;
+    border: 1px solid rgba(212,175,55,0.15);
+    pointer-events: none;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .suits {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    opacity: 0.6;
+  }
+  .suits .red { color: var(--red); }
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 50%, #8a6d1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-transform: uppercase;
+  }
+  .divider {
+    width: 60px;
+    height: 1px;
+    margin: 14px auto 0;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .level-badge {
+    display: inline-block;
+    padding: 6px 18px;
+    border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 999px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    margin-bottom: 20px;
+    background: rgba(212,175,55,0.05);
+  }
+  .timer-wrap {
+    position: relative;
+    padding: 28px 0;
+    text-align: center;
+  }
+  .timer-wrap::before, .timer-wrap::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.4), transparent);
+  }
+  .timer-wrap::before { top: 0; }
+  .timer-wrap::after { bottom: 0; }
+  .timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 110px;
+    font-weight: 300;
+    letter-spacing: -4px;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #fff 0%, #b8b8b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(255,255,255,0.1);
+  }
+  .timer.warning {
+    background: linear-gradient(180deg, #ff6b6b 0%, #c8102e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; text-shadow: 0 0 40px rgba(200,16,46,0.4); }
+    50% { opacity: 0.6; text-shadow: 0 0 60px rgba(200,16,46,0.8); }
+  }
+  .blinds-row {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 18px;
+    margin: 28px 0 10px;
+  }
+  .blind-box {
+    text-align: center;
+  }
+  .blind-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(212,175,55,0.7);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .blind-value {
+    font-family: 'Cinzel', serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--gold-bright);
+  }
+  .slash {
+    font-size: 30px;
+    color: rgba(212,175,55,0.4);
+    font-weight: 300;
+  }
+  .next {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .next strong {
+    color: rgba(244,215,126,0.85);
+    font-weight: 500;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    background: transparent;
+    color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 14px 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+  }
+  button:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(212,175,55,0.4);
+    color: var(--gold-bright);
+  }
+  button.primary {
+    background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%);
+    color: #1a1a1a;
+    border-color: var(--gold);
+    box-shadow: 0 4px 16px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  button.primary:hover {
+    background: linear-gradient(180deg, #fde7a8 0%, var(--gold-bright) 100%);
+    color: #1a1a1a;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(212,175,55,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  button.primary.running {
+    background: linear-gradient(180deg, #ff8585 0%, var(--red) 100%);
+    border-color: var(--red);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(200,16,46,0.4);
+  }
+  .settings {
+    border-top: 1px solid rgba(212,175,55,0.12);
+    padding-top: 22px;
+  }
+  .settings-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: rgba(212,175,55,0.7);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+  .settings-toggle:hover { color: var(--gold-bright); background: transparent; border: none; }
+  .settings-body { display: none; }
+  .settings-body.open { display: block; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; } }
+  label {
+    display: block;
+    font-size: 10px;
+    color: rgba(212,175,55,0.7);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: rgba(212,175,55,0.4);
+  }
+  textarea { resize: vertical; line-height: 1.6; }
+  .levels-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .levels-list::-webkit-scrollbar { width: 6px; }
+  .levels-list::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.3); border-radius: 3px; }
+  .level-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.6);
+  }
+  .level-row .num {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 2px;
+    font-size: 11px;
+  }
+  .level-row.active {
+    background: linear-gradient(90deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
+    color: var(--gold-bright);
+    box-shadow: inset 2px 0 0 var(--gold);
+  }
+  .level-row.done { opacity: 0.35; }
+  @media (max-width: 480px) {
+    .timer { font-size: 80px; }
+    .card { padding: 28px 20px; }
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls button.primary { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="suits">
+      <span>♠</span><span class="red">♥</span><span>♣</span><span class="red">♦</span>
+    </div>
+    <h1>Poker Timer</h1>
+    <div class="divider"></div>
+  </div>
+
+  <div style="text-align:center">
+    <div class="level-badge" id="levelLabel">Nivel 1</div>
+  </div>
+
+  <div class="timer-wrap">
+    <div class="timer" id="timer">20:00</div>
+  </div>
+
+  <div class="blinds-row">
+    <div class="blind-box">
+      <div class="blind-label">Small</div>
+      <div class="blind-value" id="sb">25</div>
+    </div>
+    <div class="slash">/</div>
+    <div class="blind-box">
+      <div class="blind-label">Big</div>
+      <div class="blind-value" id="bb">50</div>
+    </div>
+  </div>
+
+  <div class="next" id="next">Siguiente · <strong>50 / 100</strong></div>
+
+  <div class="controls">
+    <button class="primary" id="startBtn">Start</button>
+    <button id="pauseBtn">Pausa</button>
+    <button id="skipBtn">Skip</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div class="settings">
+    <button class="settings-toggle" id="toggleBtn">⚙ Configuración</button>
+    <div class="settings-body" id="settingsBody">
+      <label>Duración por nivel (min)</label>
+      <input type="number" id="duration" value="20" min="1" max="60">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end">
+        <div>
+          <label>Small Blind inicial</label>
+          <input type="number" id="initSB" value="25" min="1">
+        </div>
+        <div>
+          <label>Cantidad de niveles</label>
+          <input type="number" id="numLevels" value="7" min="2" max="30">
+        </div>
+      </div>
+      <button id="genBtn" style="width:100%;margin-bottom:14px;padding:12px 8px">Generar estructura</button>
+      <label>Niveles (small/big por línea — editable)</label>
+      <textarea id="levelsInput" rows="6">25/50
+50/100
+75/150
+100/200
+150/300
+200/400
+300/600
+400/800
+500/1000
+700/1400
+1000/2000</textarea>
+      <label>Niveles del torneo</label>
+      <div class="levels-list" id="levelsList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let levels = [];
+let currentLevel = 0;
+let timeLeft = 0;
+let interval = null;
+let running = false;
+
+const $ = id => document.getElementById(id);
+
+function parseLevels() {
+  levels = $('levelsInput').value.split('\n')
+    .map(l => l.trim()).filter(Boolean)
+    .map(l => {
+      const [sb, bb] = l.split('/').map(s => s.trim());
+      return { sb, bb };
+    });
+}
+
+function renderList() {
+  $('levelsList').innerHTML = levels.map((l, i) => {
+    const cls = i === currentLevel ? 'active' : (i < currentLevel ? 'done' : '');
+    return `<div class="level-row ${cls}"><span class="num">Nvl ${String(i+1).padStart(2,'0')}</span><span>${l.sb} / ${l.bb}</span></div>`;
+  }).join('');
+}
+
+function updateDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  $('timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  $('timer').classList.toggle('warning', timeLeft <= 10 && running);
+  const lvl = levels[currentLevel];
+  if (lvl) {
+    $('levelLabel').textContent = `Nivel ${currentLevel + 1}`;
+    $('sb').textContent = lvl.sb;
+    $('bb').textContent = lvl.bb;
+    const nxt = levels[currentLevel + 1];
+    $('next').innerHTML = nxt ? `Siguiente · <strong>${nxt.sb} / ${nxt.bb}</strong>` : '<strong>Último nivel</strong>';
+  }
+  renderList();
+}
+
+let audioCtx = null;
+function unlockAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch(e) {}
+}
+function playBeep() {
+  if (!audioCtx) unlockAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  try {
+    const freqs = [660, 880, 1320];
+    freqs.forEach((f, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = f;
+      osc.type = 'sine';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const t = audioCtx.currentTime + i * 0.4;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.35, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  } catch(e) {}
+}
+
+let endTime = 0;
+function tick() {
+  const now = Date.now();
+  const remaining = Math.max(0, Math.round((endTime - now) / 1000));
+  if (remaining !== timeLeft) {
+    timeLeft = remaining;
+    updateDisplay();
+  }
+  if (timeLeft === 0) {
+    playBeep();
+    if (currentLevel < levels.length - 1) {
+      currentLevel++;
+      timeLeft = parseInt($('duration').value) * 60;
+      endTime = Date.now() + timeLeft * 1000;
+      updateDisplay();
+    } else {
+      stop();
+    }
+  }
+}
+
+function start() {
+  if (running) return;
+  unlockAudio();
+  if (timeLeft === 0) timeLeft = parseInt($('duration').value) * 60;
+  endTime = Date.now() + timeLeft * 1000;
+  running = true;
+  interval = setInterval(tick, 250);
+  $('startBtn').textContent = 'Corriendo';
+  $('startBtn').classList.add('running');
+  updateDisplay();
+}
+
+function stop() {
+  running = false;
+  clearInterval(interval);
+  $('startBtn').textContent = 'Start';
+  $('startBtn').classList.remove('running');
+  updateDisplay();
+}
+
+function reset() {
+  stop();
+  currentLevel = 0;
+  timeLeft = parseInt($('duration').value) * 60;
+  updateDisplay();
+}
+
+function skip() {
+  if (currentLevel < levels.length - 1) {
+    currentLevel++;
+    timeLeft = parseInt($('duration').value) * 60;
+    playBeep();
+    updateDisplay();
+  }
+}
+
+$('startBtn').onclick = () => running ? stop() : start();
+$('pauseBtn').onclick = stop;
+$('resetBtn').onclick = reset;
+$('skipBtn').onclick = skip;
+$('levelsInput').oninput = () => { parseLevels(); updateDisplay(); };
+$('duration').onchange = () => { if (!running) timeLeft = parseInt($('duration').value) * 60; updateDisplay(); };
+$('toggleBtn').onclick = () => $('settingsBody').classList.toggle('open');
+
+function generateLevels() {
+  const sb = parseInt($('initSB').value) || 25;
+  const bb = sb * 2;
+  const n = parseInt($('numLevels').value) || 7;
+  const steps = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 40, 60, 80, 100, 140, 200, 280, 400, 600, 800];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const mult = steps[i] || steps[steps.length-1] * Math.pow(1.5, i - steps.length + 1);
+    const s = Math.round(sb * mult);
+    const b = Math.round(bb * mult);
+    out.push(`${s}/${b}`);
+  }
+  $('levelsInput').value = out.join('\n');
+  parseLevels();
+  reset();
+}
+$('genBtn').onclick = generateLevels;
+
+parseLevels();
+timeLeft = 20 * 60;
+updateDisplay();
+</script>
+</body>
+</html>
