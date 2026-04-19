@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=JetBrains+Mono:wght@300;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background-color: #041810; }
   :root {
     --gold: #d4af37;
     --gold-bright: #f4d77e;
@@ -433,11 +434,18 @@ let musicTimer = null;
 function startMusic() {
   if (!audioCtx) unlockAudio();
   if (!audioCtx) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
   stopMusic();
+  const doStart = () => _startMusicInternal();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().then(doStart).catch(doStart);
+  } else {
+    doStart();
+  }
+}
 
+function _startMusicInternal() {
   const master = audioCtx.createGain();
-  master.gain.value = 0.08;
+  master.gain.value = 0.25;
   master.connect(audioCtx.destination);
   musicNodes.push(master);
 
