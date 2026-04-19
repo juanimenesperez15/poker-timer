@@ -431,19 +431,38 @@ let audioCtx = null;
 let musicNodes = [];
 let musicTimer = null;
 
-function startMusic() {
+function playStartSound() {
   if (!audioCtx) unlockAudio();
   if (!audioCtx) return;
-  stopMusic();
-  const doStart = () => _startMusicInternal();
+  const go = () => _playStartInternal();
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume().then(doStart).catch(doStart);
+    audioCtx.resume().then(go).catch(go);
   } else {
-    doStart();
+    go();
   }
 }
 
-function _startMusicInternal() {
+function _playStartInternal() {
+  try {
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((f, i) => {
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      const t = audioCtx.currentTime + i * 0.12;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.4, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+  } catch(e) {}
+}
+
+function _unused_musicInternal() {
   const master = audioCtx.createGain();
   master.gain.value = 0.25;
   master.connect(audioCtx.destination);
@@ -569,7 +588,7 @@ function start() {
   endTime = Date.now() + timeLeft * 1000;
   running = true;
   interval = setInterval(tick, 250);
-  startMusic();
+  playStartSound();
   $('startBtn').textContent = 'Corriendo';
   $('startBtn').classList.add('running');
   updateDisplay();
@@ -578,7 +597,6 @@ function start() {
 function stop() {
   running = false;
   clearInterval(interval);
-  stopMusic();
   $('startBtn').textContent = 'Start';
   $('startBtn').classList.remove('running');
   updateDisplay();
