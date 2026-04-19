@@ -185,10 +185,28 @@
     font-weight: 500;
   }
   .controls {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     margin-bottom: 24px;
+  }
+  .controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  button.big {
+    padding: 22px 8px;
+    font-size: 16px;
+    letter-spacing: 5px;
+  }
+  button.small {
+    padding: 10px 8px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    max-width: 180px;
+    margin: 0 auto;
+    width: 100%;
   }
   button {
     touch-action: manipulation;
@@ -346,10 +364,9 @@
   <div class="next" id="next">Siguiente · <strong>50 / 100</strong></div>
 
   <div class="controls">
-    <button class="primary" id="startBtn">Start</button>
-    <button id="pauseBtn">Pausa</button>
-    <button id="skipBtn">Skip</button>
-    <button id="resetBtn">Reset</button>
+    <button class="primary big" id="startBtn">Start</button>
+    <button id="skipBtn">Siguiente nivel</button>
+    <button class="small" id="resetBtn">Reset</button>
   </div>
 
   <div class="settings">
@@ -426,6 +443,22 @@ function updateDisplay() {
   }
   renderList();
 }
+
+let wakeLock = null;
+async function acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch(e) {}
+}
+function releaseWakeLock() {
+  if (wakeLock) { try { wakeLock.release(); } catch(e) {} wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running && !wakeLock) acquireWakeLock();
+});
 
 let audioCtx = null;
 let musicNodes = [];
@@ -589,6 +622,7 @@ function start() {
   running = true;
   interval = setInterval(tick, 250);
   playStartSound();
+  acquireWakeLock();
   $('startBtn').textContent = 'Corriendo';
   $('startBtn').classList.add('running');
   updateDisplay();
@@ -597,6 +631,7 @@ function start() {
 function stop() {
   running = false;
   clearInterval(interval);
+  releaseWakeLock();
   $('startBtn').textContent = 'Start';
   $('startBtn').classList.remove('running');
   updateDisplay();
@@ -619,8 +654,7 @@ function skip() {
 }
 
 $('startBtn').onclick = () => running ? stop() : start();
-$('pauseBtn').onclick = stop;
-$('resetBtn').onclick = reset;
+$('resetBtn').onclick = () => { if (confirm('¿Seguro que querés reiniciar el torneo?')) reset(); };
 $('skipBtn').onclick = skip;
 $('levelsInput').oninput = () => { parseLevels(); updateDisplay(); };
 $('duration').onchange = () => { if (!running) timeLeft = parseInt($('duration').value) * 60; updateDisplay(); };
